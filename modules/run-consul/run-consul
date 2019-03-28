@@ -134,9 +134,9 @@ function find_scale_set {
 
   scale_set_name="unknown"
   log_info "Finding the scale set Instance $instance_id belongs to"
-  scale_sets=($(az vmss list --subscription "$subscription_id" | jq -r .[]'.name'))
+  scale_sets=($(az vmss list --subscription "$subscription_id" | jq -r '.[].name'))
   for scale_set in ${scale_sets[@]}; do
-    local instances=($(az vmss list-instances --resource-group $resource_group_name --name $scale_set  --subscription "$subscription_id" | jq -r .[]'.vmId'))
+    local instances=($(az vmss list-instances --resource-group $resource_group_name --name $scale_set  --subscription "$subscription_id" | jq -r '.[].vmId'))
     for instance in ${instances[@]}; do
         if [[ "$instance"==$instance_id ]]; then
             scale_set_name=$scale_set
