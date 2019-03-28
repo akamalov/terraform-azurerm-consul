@@ -111,7 +111,7 @@ function get_other_scale_set_member_ip {
     local readonly scale_set_name="$2"
     local readonly my_ip_address="$3"
 
-    ip_list=($(az vmss nic list --resource-group "$resource_group_name" --vmss-name "$scale_set_name" | jq '.[].ipConfigurations[].privateIpAddress'))
+    ip_list=($(az vmss nic list --resource-group "$resource_group_name" --vmss-name "$scale_set_name" --subscription "$subscription_id" | jq '.[].ipConfigurations[].privateIpAddress'))
     other_ip=""
 
     for ip in ${ip_list[@]}; do
@@ -134,9 +134,9 @@ function find_scale_set {
 
   scale_set_name="unknown"
   log_info "Finding the scale set Instance $instance_id belongs to"
-  scale_sets=($(az vmss list | jq -r .[]'.name'))
+  scale_sets=($(az vmss list --subscription "$subscription_id" | jq -r .[]'.name'))
   for scale_set in ${scale_sets[@]}; do
-    local instances=($(az vmss list-instances --resource-group $resource_group_name --name $scale_set | jq -r .[]'.vmId'))
+    local instances=($(az vmss list-instances --resource-group $resource_group_name --name $scale_set  --subscription "$subscription_id" | jq -r .[]'.vmId'))
     for instance in ${instances[@]}; do
         if [[ "$instance"==$instance_id ]]; then
             scale_set_name=$scale_set
@@ -152,7 +152,7 @@ function get_scale_set_size {
   local vmss_json=""
 
   log_info "Looking up the size of the Scale Set $scale_set_name in $resource_group_name"
-  vmss_json=$(az vmss list-instances --resource-group $resource_group_name --name $scale_set_name)
+  vmss_json=$(az vmss list-instances --resource-group $resource_group_name --name $scale_set_name --subscription "$subscription_id")
   echo "$vmss_json" | jq '. | length'
 }
 
@@ -270,7 +270,7 @@ function do_azure_login {
   local client_id="$2"
   local secret_access_key="$3"
   log_info "Logging into the Azure API as service principal $client_id"
-  result=$(az login --service-principal -u "$client_id" -p "$secret_access_key" --tenant "$tenant_id")
+  result=$(az login --service-principal -u "$client_id" -p "$secret_access_key" --tenant "$tenant_id" --subscription "$subscription_id")
 }
 
 function run {
@@ -379,7 +379,7 @@ function run {
   assert_not_empty "client-id" "$client_id"
   assert_not_empty "secret-access-key" "$secret_access_key"
 
-  do_azure_login "$tenant_id" "$client_id" "$secret_access_key"
+  do_azure_login "$tenant_id" "$client_id" "$secret_access_key" "$subscription_id"
 
   if [[ ("$server" == "true" && "$client" == "true") || ("$server" == "false" && "$client" == "false") ]]; then
     log_error "Exactly one of --server or --client must be set."
